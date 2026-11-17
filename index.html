@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bard College Status</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-6 md:p-12">
+    <div class="max-w-3xl mx-auto">
+
+        <div class="flex items-center mb-8 border-b pb-6">
+            <img src="bard-collge-logo.png" alt="Bard College" class="h-16 mr-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Operational Status</h1>
+                <p class="text-gray-500">Out-of-band monitoring for IT and Physical Infrastructure.</p>
+            </div>
+        </div>
+
+        <div id="active-incidents" class="mb-10"></div>
+
+        <h2 class="text-xl font-bold mb-4 text-gray-700">System Status</h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2 mb-10" id="components"></div>
+
+        <h2 class="text-xl font-bold mb-4 text-gray-700">Incident History</h2>
+        <div id="history" class="space-y-4"></div>
+
+    </div>
+
+    <script>
+        // Edit these to match your exact categories
+        const systems = ['Campus Power', 'Network & Wi-Fi', 'Brightspace LMS', 'SSO / Login', 'HVAC / Water'];
+
+        fetch('data.json')
+            .then(response => {
+                if (!response.ok) throw new Error("Data not found");
+                return response.json();
+            })
+            .then(issues => {
+                issues = issues.filter(i => !i.pull_request);
+                const open = issues.filter(i => i.state === 'open');
+                const closed = issues.filter(i => i.state === 'closed');
+
+                const activeDiv = document.getElementById('active-incidents');
+                if (open.length === 0) {
+                    activeDiv.innerHTML = `<div class="bg-green-50 border-l-4 border-green-500 p-4 rounded"><p class="font-bold text-green-800">All systems are operational.</p></div>`;
+                } else {
+                    open.forEach(issue => {
+                        activeDiv.innerHTML += `
+                        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-4 shadow-sm">
+                            <h3 class="font-bold text-red-800 text-lg">${issue.title}</h3>
+                            <p class="text-red-700 mt-2 whitespace-pre-wrap">${issue.body}</p>
+                            <p class="text-xs text-red-500 mt-3 font-mono">Updated: ${new Date(issue.updated_at).toLocaleString()}</p>
+                        </div>`;
+                    });
+                }
+
+                let compHtml = '';
+                systems.forEach(sys => {
+                    let status = '🟢 Operational';
+                    open.forEach(issue => {
+                        const labels = issue.labels.map(l => l.name);
+                        if (labels.includes(sys)) {
+                            if (labels.includes('Outage')) { status = '🔴 Outage'; }
+                            else if (labels.includes('Degraded')) { status = '🟡 Degraded'; }
+                        }
+                    });
+                    compHtml += `
+                    <div class="flex justify-between items-center py-3 px-4 border-b last:border-0 hover:bg-gray-50">
+                        <span class="font-medium text-gray-700">${sys}</span>
+                        <span class="font-bold tracking-wide">${status}</span>
+                    </div>`;
+                });
+                document.getElementById('components').innerHTML = compHtml;
+
+                const historyDiv = document.getElementById('history');
+                if (closed.length === 0) {
+                    historyDiv.innerHTML = '<p class="text-gray-500 italic">No past incidents to display.</p>';
+                } else {
+                    closed.forEach(issue => {
+                        const labels = issue.labels.map(l => `<span class="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs mr-2">${l.name}</span>`).join('');
+                        historyDiv.innerHTML += `
+                        <div class="bg-white border border-gray-200 p-4 rounded shadow-sm">
+                            <h3 class="font-bold text-gray-800">${issue.title}</h3>
+                            <div class="mt-2 mb-3">${labels}</div>
+                            <p class="text-gray-600 text-sm whitespace-pre-wrap">${issue.body}</p>
+                            <p class="text-xs text-gray-400 mt-3 font-mono">Resolved: ${new Date(issue.closed_at).toLocaleString()}</p>
+                        </div>`;
+                    });
+                }
+            })
+            .catch(err => console.log("Awaiting first issue data..."));
+    </script>
+</body>
+</html>
