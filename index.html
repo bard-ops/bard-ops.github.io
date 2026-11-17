@@ -11,7 +11,6 @@
             --text: #0f172a;
             --muted: #64748b;
             --border: #e2e8f0;
-            --accent: #990000;
             --green-bg: #f0fdf4;
             --green-border: #22c55e;
             --green-text: #166534;
@@ -156,19 +155,26 @@
             font-weight: 500;
         }
 
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
+        /* Status Checkbox Badge */
+        .status-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #ffffff;
             flex-shrink: 0;
             background-color: var(--green-border);
         }
 
-        .status-dot.degraded {
+        .status-box.degraded {
             background-color: var(--yellow-border);
         }
 
-        .status-dot.outage {
+        .status-box.outage {
             background-color: var(--red-border);
         }
 
@@ -254,18 +260,21 @@
             </div>
         </header>
 
-        <section id="active-incidents"></section>
+        <section id="active-incidents">
+            <div class="banner-ok">All systems are operational.</div>
+        </section>
 
         <section id="categories"></section>
 
         <section>
             <h2>Incident History</h2>
-            <div id="history"></div>
+            <div id="history">
+                <p class="empty-state">No past incidents recorded.</p>
+            </div>
         </section>
     </div>
 
     <script>
-        // Each item has a display name and the exact GitHub label that triggers it
         const categoryGroups = [
             {
                 heading: "Information Technology",
@@ -298,60 +307,37 @@
                 .replace(/"/g, "&quot;");
         }
 
-        function renderDashboard(issues) {
-            const cleanIssues = issues.filter(i => !i.pull_request);
-            const open = cleanIssues.filter(i => i.state === "open");
-            const closed = cleanIssues.filter(i => i.state === "closed");
-
-            // 1. Active Incidents at top
-            const activeDiv = document.getElementById("active-incidents");
-            if (open.length === 0) {
-                activeDiv.innerHTML = `<div class="banner-ok">All systems are operational.</div>`;
-            } else {
-                activeDiv.innerHTML = open.map(issue => {
-                    const labels = issue.labels.map(l => l.name);
-                    const isDegradedOnly = labels.includes("Degraded") && !labels.includes("Outage");
-                    const cardClass = isDegradedOnly ? "incident-card degraded" : "incident-card";
-                    const tagsHtml = labels.map(l => `<span class="tag">${escapeHtml(l)}</span>`).join("");
-
-                    return `
-                        <div class="${cardClass}">
-                            <div class="incident-title">${escapeHtml(issue.title)}</div>
-                            <div class="tags">${tagsHtml}</div>
-                            <div class="incident-body">${escapeHtml(issue.body)}</div>
-                            <div class="incident-meta">Last updated: ${new Date(issue.updated_at).toLocaleString()}</div>
-                        </div>
-                    `;
-                }).join("");
-            }
-
-            // 2. Category Sections with left-side green/yellow/red indicator
+        function renderCategories(openIssues) {
             const catDiv = document.getElementById("categories");
             catDiv.innerHTML = categoryGroups.map(group => {
                 const rowsHtml = group.items.map(item => {
                     let state = "operational";
+                    let icon = "✓";
                     let labelText = "Operational";
 
-                    open.forEach(issue => {
+                    openIssues.forEach(issue => {
                         const labels = issue.labels.map(l => l.name);
                         if (labels.includes(item.label)) {
                             if (labels.includes("Outage")) {
                                 state = "outage";
+                                icon = "✕";
                                 labelText = "Outage";
-                            } else if (labels.includes("Degraded") && state !== "outage") {
+                            } else if (state !== "outage") {
+                                // Defaults to yellow Degraded if Degraded is selected or no severity label was added
                                 state = "degraded";
+                                icon = "!";
                                 labelText = "Degraded";
                             }
                         }
                     });
 
-                    const dotClass = state === "operational" ? "status-dot" : `status-dot ${state}`;
+                    const boxClass = state === "operational" ? "status-box" : `status-box ${state}`;
                     const textClass = state === "operational" ? "status-text" : `status-text ${state}`;
 
                     return `
                         <div class="system-row">
                             <div class="system-left">
-                                <span class="${dotClass}" aria-hidden="true"></span>
+                                <span class="${boxClass}" aria-hidden="true">${icon}</span>
                                 <span>${escapeHtml(item.name)}</span>
                             </div>
                             <span class="${textClass}">${labelText}</span>
@@ -366,6 +352,37 @@
                     </div>
                 `;
             }).join("");
+        }
+
+        function renderDashboard(issues) {
+            const cleanIssues = issues.filter(i => !i.pull_request);
+            const open = cleanIssues.filter(i => i.state === "open");
+            const closed = cleanIssues.filter(i => i.state === "closed");
+
+            // 1. Active Incidents at top
+            const activeDiv = document.getElementById("active-incidents");
+            if (open.length === 0) {
+                activeDiv.innerHTML = `<div class="banner-ok">All systems are operational.</div>`;
+            } else {
+                activeDiv.innerHTML = open.map(issue => {
+                    const labels = issue.labels.map(l => l.name);
+                    const isOutage = labels.includes("Outage");
+                    const cardClass = isOutage ? "incident-card" : "incident-card degraded";
+                    const tagsHtml = labels.map(l => `<span class="tag">${escapeHtml(l)}</span>`).join("");
+
+                    return `
+                        <div class="${cardClass}">
+                            <div class="incident-title">${escapeHtml(issue.title)}</div>
+                            <div class="tags">${tagsHtml}</div>
+                            <div class="incident-body">${escapeHtml(issue.body)}</div>
+                            <div class="incident-meta">Last updated: ${new Date(issue.updated_at).toLocaleString()}</div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            // 2. Re-render categories with active incident states
+            renderCategories(open);
 
             // 3. Incident History
             const historyDiv = document.getElementById("history");
@@ -391,14 +408,17 @@
             }
         }
 
-        // Cache-busting query string ensures browsers don't serve stale data.json during an outage
+        // Draw all categories with green checkboxes immediately on load
+        renderCategories([]);
+
+        // Fetch live data and update if available
         fetch("data.json?t=" + Date.now())
             .then(res => {
                 if (!res.ok) throw new Error("No data file yet");
                 return res.json();
             })
             .then(renderDashboard)
-            .catch(() => renderDashboard([]));
+            .catch(() => {});
     </script>
 </body>
 </html>
