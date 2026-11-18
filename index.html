@@ -20,6 +20,9 @@
             --red-bg: #fef2f2;
             --red-border: #ef4444;
             --red-text: #991b1b;
+            --maint-bg: #f1f5f9;
+            --maint-border: #64748b;
+            --maint-text: #334155;
         }
 
         * {
@@ -73,8 +76,8 @@
             color: var(--text);
         }
 
-        /* Active Incidents Banner */
-        #active-incidents {
+        /* Top Status & Active Incidents */
+        #top-status {
             margin-bottom: 2.25rem;
         }
 
@@ -85,6 +88,11 @@
             padding: 1rem 1.25rem;
             border-radius: 6px;
             font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .banner-ok:last-child {
+            margin-bottom: 0;
         }
 
         .incident-card {
@@ -101,14 +109,42 @@
             border-left-color: var(--yellow-border);
         }
 
+        .incident-card.maintenance {
+            background: var(--maint-bg);
+            border-left-color: var(--maint-border);
+        }
+
+        .incident-card:last-child {
+            margin-bottom: 0;
+        }
+
         .incident-title {
             font-size: 1.1rem;
             font-weight: 700;
             color: var(--red-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .incident-card.degraded .incident-title {
             color: var(--yellow-text);
+        }
+
+        .incident-card.maintenance .incident-title {
+            color: var(--maint-text);
+        }
+
+        .window-badge {
+            display: inline-block;
+            margin-top: 0.5rem;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: var(--maint-text);
+            font-size: 0.825rem;
+            font-weight: 600;
+            padding: 0.25rem 0.65rem;
+            border-radius: 4px;
         }
 
         .incident-body {
@@ -163,7 +199,7 @@
             width: 22px;
             height: 22px;
             border-radius: 5px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 800;
             color: #ffffff;
             flex-shrink: 0;
@@ -178,6 +214,10 @@
             background-color: var(--red-border);
         }
 
+        .status-box.maintenance {
+            background-color: var(--maint-border);
+        }
+
         .status-text {
             font-size: 0.875rem;
             font-weight: 600;
@@ -190,6 +230,10 @@
 
         .status-text.outage {
             color: var(--red-text);
+        }
+
+        .status-text.maintenance {
+            color: var(--maint-text);
         }
 
         /* History */
@@ -260,16 +304,16 @@
             </div>
         </header>
 
-        <section id="active-incidents">
+        <section id="top-status">
             <div class="banner-ok">All systems are operational.</div>
         </section>
 
         <section id="categories"></section>
 
         <section>
-            <h2>Incident History</h2>
+            <h2>Incident &amp; Maintenance History</h2>
             <div id="history">
-                <p class="empty-state">No past incidents recorded.</p>
+                <p class="empty-state">No past incidents or maintenance recorded.</p>
             </div>
         </section>
     </div>
@@ -307,29 +351,68 @@
                 .replace(/"/g, "&quot;");
         }
 
+        // Extracts "Maintenance Window: ..." if present in the issue body so it can be highlighted
+        function parseMaintenanceBody(body) {
+            if (!body) return { windowText: null, cleanBody: "" };
+            const lines = body.split("\n");
+            let windowText = null;
+            const remaining = [];
+
+            for (const line of lines) {
+                const match = line.match(/^\s*(?:###\s*)?Maintenance Window:\s*(.+)$/i);
+                if (match && !windowText) {
+                    windowText = match[1].trim();
+                } else {
+                    remaining.push(line);
+                }
+            }
+
+            return {
+                windowText,
+                cleanBody: remaining.join("\n").trim()
+            };
+        }
+
         function renderCategories(openIssues) {
             const catDiv = document.getElementById("categories");
             catDiv.innerHTML = categoryGroups.map(group => {
                 const rowsHtml = group.items.map(item => {
-                    let state = "operational";
-                    let icon = "✓";
-                    let labelText = "Operational";
+                    // Priority: outage (3) > degraded (2) > maintenance (1) > operational (0)
+                    let severity = 0;
 
                     openIssues.forEach(issue => {
                         const labels = issue.labels.map(l => l.name);
                         if (labels.includes(item.label)) {
                             if (labels.includes("Outage")) {
-                                state = "outage";
-                                icon = "✕";
-                                labelText = "Outage";
-                            } else if (state !== "outage") {
-                                // Defaults to yellow Degraded if Degraded is selected or no severity label was added
-                                state = "degraded";
-                                icon = "!";
-                                labelText = "Degraded";
+                                severity = Math.max(severity, 3);
+                            } else if (labels.includes("Degraded")) {
+                                severity = Math.max(severity, 2);
+                            } else if (labels.includes("Maintenance")) {
+                                severity = Math.max(severity, 1);
+                            } else {
+                                // Fallback if an open issue has a category label but no severity label
+                                severity = Math.max(severity, 2);
                             }
                         }
                     });
+
+                    let state = "operational";
+                    let icon = "✓";
+                    let labelText = "Operational";
+
+                    if (severity === 3) {
+                        state = "outage";
+                        icon = "✕";
+                        labelText = "Outage";
+                    } else if (severity === 2) {
+                        state = "degraded";
+                        icon = "!";
+                        labelText = "Degraded";
+                    } else if (severity === 1) {
+                        state = "maintenance";
+                        icon = "🔧";
+                        labelText = "Maintenance";
+                    }
 
                     const boxClass = state === "operational" ? "status-box" : `status-box ${state}`;
                     const textClass = state === "operational" ? "status-text" : `status-text ${state}`;
@@ -359,12 +442,30 @@
             const open = cleanIssues.filter(i => i.state === "open");
             const closed = cleanIssues.filter(i => i.state === "closed");
 
-            // 1. Active Incidents at top
-            const activeDiv = document.getElementById("active-incidents");
-            if (open.length === 0) {
-                activeDiv.innerHTML = `<div class="banner-ok">All systems are operational.</div>`;
+            // Split open issues into unplanned incidents vs. scheduled maintenance
+            const activeIncidents = [];
+            const maintenanceItems = [];
+
+            open.forEach(issue => {
+                const labels = issue.labels.map(l => l.name);
+                if (labels.includes("Maintenance") && !labels.includes("Outage") && !labels.includes("Degraded")) {
+                    maintenanceItems.push(issue);
+                } else {
+                    activeIncidents.push(issue);
+                }
+            });
+
+            // 1. Top Status Section:
+            //    - Active Outages/Degraded first (replaces green banner if any exist)
+            //    - Green "All systems are operational" banner stays intact when no outages/degraded exist
+            //    - Grey Scheduled Maintenance cards float directly underneath
+            const topDiv = document.getElementById("top-status");
+            let topHtml = "";
+
+            if (activeIncidents.length === 0) {
+                topHtml += `<div class="banner-ok">All systems are operational.</div>`;
             } else {
-                activeDiv.innerHTML = open.map(issue => {
+                topHtml += activeIncidents.map(issue => {
                     const labels = issue.labels.map(l => l.name);
                     const isOutage = labels.includes("Outage");
                     const cardClass = isOutage ? "incident-card" : "incident-card degraded";
@@ -381,18 +482,43 @@
                 }).join("");
             }
 
-            // 2. Re-render categories with active incident states
+            if (maintenanceItems.length > 0) {
+                topHtml += maintenanceItems.map(issue => {
+                    const labels = issue.labels.map(l => l.name);
+                    const tagsHtml = labels.map(l => `<span class="tag">${escapeHtml(l)}</span>`).join("");
+                    const { windowText, cleanBody } = parseMaintenanceBody(issue.body);
+                    const windowHtml = windowText
+                        ? `<div class="window-badge">Scheduled Window: ${escapeHtml(windowText)}</div>`
+                        : "";
+
+                    return `
+                        <div class="incident-card maintenance">
+                            <div class="incident-title"><span aria-hidden="true">🔧</span> ${escapeHtml(issue.title)}</div>
+                            ${windowHtml}
+                            <div class="tags">${tagsHtml}</div>
+                            <div class="incident-body">${escapeHtml(cleanBody)}</div>
+                            <div class="incident-meta">Posted: ${new Date(issue.updated_at).toLocaleString()}</div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            topDiv.innerHTML = topHtml;
+
+            // 2. Category Rows
             renderCategories(open);
 
-            // 3. Incident History
+            // 3. Incident & Maintenance History
             const historyDiv = document.getElementById("history");
             if (closed.length === 0) {
-                historyDiv.innerHTML = `<p class="empty-state">No past incidents recorded.</p>`;
+                historyDiv.innerHTML = `<p class="empty-state">No past incidents or maintenance recorded.</p>`;
             } else {
                 historyDiv.innerHTML = closed.map(issue => {
                     const tagsHtml = issue.labels
                         .map(l => `<span class="tag">${escapeHtml(l.name)}</span>`)
                         .join("");
+                    const { windowText, cleanBody } = parseMaintenanceBody(issue.body);
+                    const windowLine = windowText ? `Scheduled Window: ${windowText}\n\n` : "";
 
                     return `
                         <div class="history-card">
@@ -401,7 +527,7 @@
                                 <span class="history-date">Resolved ${new Date(issue.closed_at).toLocaleString()}</span>
                             </div>
                             <div class="tags">${tagsHtml}</div>
-                            <div class="history-body">${escapeHtml(issue.body)}</div>
+                            <div class="history-body">${escapeHtml(windowLine + cleanBody)}</div>
                         </div>
                     `;
                 }).join("");
