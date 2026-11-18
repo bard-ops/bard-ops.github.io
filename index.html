@@ -159,6 +159,41 @@
             color: var(--muted);
         }
 
+        /* Updates / Comments Timeline */
+        .updates-list {
+            margin-top: 0.9rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid rgba(15, 23, 42, 0.12);
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .update-item {
+            background: rgba(255, 255, 255, 0.65);
+            border-left: 3px solid rgba(15, 23, 42, 0.25);
+            padding: 0.55rem 0.8rem;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .history-card .update-item {
+            background: #f8fafc;
+            border-left-color: #94a3b8;
+        }
+
+        .update-time {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 0.2rem;
+        }
+
+        .update-body {
+            white-space: pre-wrap;
+            color: var(--text);
+        }
+
         /* Category Groups */
         .group-section {
             margin-bottom: 2rem;
@@ -358,7 +393,19 @@
                 .replace(/"/g, "&quot;");
         }
 
-        // Parses GitHub Issue Form markdown: extracts checked categories, maintenance window, and clean body text
+        function renderCommentsHtml(comments) {
+            if (!Array.isArray(comments) || comments.length === 0) return "";
+            // Show newest updates at the top
+            const sorted = [...comments].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const itemsHtml = sorted.map(c => `
+                <div class="update-item">
+                    <div class="update-time">Update — ${new Date(c.created_at).toLocaleString()}</div>
+                    <div class="update-body">${escapeHtml((c.body || "").trim())}</div>
+                </div>
+            `).join("");
+            return `<div class="updates-list">${itemsHtml}</div>`;
+        }
+
         function parseIssueData(issue) {
             const rawBody = issue.body || "";
             const lines = rawBody.split(/\r?\n/);
@@ -372,7 +419,6 @@
             for (const line of lines) {
                 const trimmed = line.trim();
 
-                // Detect checked boxes like "- [x] IT: Systems" and map to category label
                 const checkedMatch = trimmed.match(/^- \[[xX]\]\s*(.+)$/);
                 if (checkedMatch) {
                     const checkedText = checkedMatch[1].trim();
@@ -386,12 +432,10 @@
                     continue;
                 }
 
-                // Skip unchecked boxes like "- [ ] IT: Network"
                 if (/^- \[ \]\s*.+$/.test(trimmed)) {
                     continue;
                 }
 
-                // Track Issue Form markdown section headings
                 if (/^###\s+Affected Categories/i.test(trimmed)) {
                     section = "categories";
                     continue;
@@ -405,7 +449,6 @@
                     continue;
                 }
 
-                // Also catch inline "Maintenance Window: ..." if typed manually
                 const inlineWindow = trimmed.match(/^Maintenance Window:\s*(.+)$/i);
                 if (inlineWindow && !windowText) {
                     windowText = inlineWindow[1].trim();
@@ -440,7 +483,6 @@
             const catDiv = document.getElementById("categories");
             catDiv.innerHTML = categoryGroups.map(group => {
                 const rowsHtml = group.items.map(item => {
-                    // Priority: outage (3) > degraded (2) > maintenance (1) > operational (0)
                     let severity = 0;
 
                     parsedOpenIssues.forEach(({ labels }) => {
@@ -529,13 +571,15 @@
                     const isOutage = labels.includes("Outage");
                     const cardClass = isOutage ? "incident-card" : "incident-card degraded";
                     const tagsHtml = labels.map(l => `<span class="tag">${escapeHtml(l)}</span>`).join("");
+                    const commentsHtml = renderCommentsHtml(issue.comment_list);
 
                     return `
                         <div class="${cardClass}">
                             <div class="incident-title">${escapeHtml(issue.title)}</div>
                             <div class="tags">${tagsHtml}</div>
                             <div class="incident-body">${escapeHtml(cleanBody)}</div>
-                            <div class="incident-meta">Last updated: ${new Date(issue.updated_at).toLocaleString()}</div>
+                            ${commentsHtml}
+                            <div class="incident-meta">Reported: ${new Date(issue.created_at).toLocaleString()}</div>
                         </div>
                     `;
                 }).join("");
@@ -547,6 +591,7 @@
                     const windowHtml = windowText
                         ? `<div class="window-badge">Scheduled Window: ${escapeHtml(windowText)}</div>`
                         : "";
+                    const commentsHtml = renderCommentsHtml(issue.comment_list);
 
                     return `
                         <div class="incident-card maintenance">
@@ -554,7 +599,8 @@
                             ${windowHtml}
                             <div class="tags">${tagsHtml}</div>
                             <div class="incident-body">${escapeHtml(cleanBody)}</div>
-                            <div class="incident-meta">Posted: ${new Date(issue.updated_at).toLocaleString()}</div>
+                            ${commentsHtml}
+                            <div class="incident-meta">Posted: ${new Date(issue.created_at).toLocaleString()}</div>
                         </div>
                     `;
                 }).join("");
@@ -575,6 +621,7 @@
                         .map(l => `<span class="tag">${escapeHtml(l)}</span>`)
                         .join("");
                     const windowLine = windowText ? `Scheduled Window: ${windowText}\n\n` : "";
+                    const commentsHtml = renderCommentsHtml(issue.comment_list);
 
                     return `
                         <div class="history-card">
@@ -584,6 +631,7 @@
                             </div>
                             <div class="tags">${tagsHtml}</div>
                             <div class="history-body">${escapeHtml(windowLine + cleanBody)}</div>
+                            ${commentsHtml}
                         </div>
                     `;
                 }).join("");
