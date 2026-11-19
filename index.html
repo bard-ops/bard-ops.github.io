@@ -438,26 +438,23 @@
             {
                 heading: "Information Technology",
                 items: [
-                    { name: "Network", label: "Network", checkboxText: "IT: Network" },
-                    { name: "Systems", label: "Systems", checkboxText: "IT: Systems" },
-                    { name: "Authentication", label: "Authentication", checkboxText: "IT: Authentication" },
-                    { name: "Google Workspace", label: "Google Workspace", checkboxText: "IT: Google Workspace" },
-                    { name: "Banner", label: "Banner", checkboxText: "IT: Banner" },
-                    { name: "Other", label: "IT: Other", checkboxText: "IT: Other" }
+                    { name: "Systems", label: "IT: Systems" },
+                    { name: "Network", label: "IT: Network" },
+                    { name: "Security", label: "IT: Security" },
+                    { name: "Applications", label: "IT: Applications" },
+                    { name: "Other", label: "IT: Other" }
                 ]
             },
             {
                 heading: "Physical plant",
                 items: [
-                    { name: "Power", label: "Power", checkboxText: "Physical Plant: Power" },
-                    { name: "Water", label: "Water", checkboxText: "Physical Plant: Water" },
-                    { name: "Weather", label: "Weather", checkboxText: "Physical Plant: Weather" },
-                    { name: "Other", label: "Physical: Other", checkboxText: "Physical Plant: Other" }
+                    { name: "Power", label: "Physical: Power" },
+                    { name: "Water", label: "Physical: Water" },
+                    { name: "Weather", label: "Physical: Weather" },
+                    { name: "Other", label: "Physical: Other" }
                 ]
             }
         ];
-
-        const allCategoryItems = categoryGroups.flatMap(g => g.items);
 
         function escapeHtml(str) {
             if (!str) return "";
@@ -483,71 +480,34 @@
         function parseIssueData(issue) {
             const rawBody = issue.body || "";
             const lines = rawBody.split(/\r?\n/);
-            const effectiveLabels = new Set(issue.labels.map(l => l.name));
+            const labels = issue.labels.map(l => l.name);
 
             let windowText = null;
-            let section = null;
-            const windowLines = [];
             const detailLines = [];
 
             for (const line of lines) {
                 const trimmed = line.trim();
 
-                const checkedMatch = trimmed.match(/^- \[[xX]\]\s*(.+)$/);
-                if (checkedMatch) {
-                    const checkedText = checkedMatch[1].trim();
-                    const matchedItem = allCategoryItems.find(
-                        item => item.checkboxText.toLowerCase() === checkedText.toLowerCase() ||
-                                item.label.toLowerCase() === checkedText.toLowerCase()
-                    );
-                    if (matchedItem) {
-                        effectiveLabels.add(matchedItem.label);
-                    }
-                    continue;
-                }
-
-                if (/^- \[ \]\s*.+$/.test(trimmed)) {
-                    continue;
-                }
-
-                if (/^###\s+Affected Categories/i.test(trimmed)) {
-                    section = "categories";
-                    continue;
-                }
-                if (/^###\s+Maintenance Window/i.test(trimmed)) {
-                    section = "window";
-                    continue;
-                }
-                if (/^###\s+(Status Details & Impact|Maintenance Details)/i.test(trimmed)) {
-                    section = "details";
-                    continue;
-                }
-
+                // Extract "Maintenance Window: ..." line
                 const inlineWindow = trimmed.match(/^Maintenance Window:\s*(.+)$/i);
                 if (inlineWindow && !windowText) {
-                    windowText = inlineWindow[1].trim();
+                    const val = inlineWindow[1].trim();
+                    if (!/^\[Enter date,/i.test(val)) {
+                        windowText = val;
+                    }
                     continue;
                 }
 
-                if (section === "categories") {
+                // Ignore unedited template placeholder lines
+                if (/^\[(Describe the active issue|Describe expected user impact)/i.test(trimmed)) {
                     continue;
-                } else if (section === "window") {
-                    if (trimmed && trimmed !== "_No response_") {
-                        windowLines.push(trimmed);
-                    }
-                } else {
-                    if (trimmed !== "_No response_") {
-                        detailLines.push(line);
-                    }
                 }
-            }
 
-            if (!windowText && windowLines.length > 0) {
-                windowText = windowLines.join(" ");
+                detailLines.push(line);
             }
 
             return {
-                labels: Array.from(effectiveLabels),
+                labels,
                 windowText,
                 cleanBody: detailLines.join("\n").trim()
             };
@@ -561,11 +521,11 @@
 
                     parsedOpenIssues.forEach(({ labels }) => {
                         if (labels.includes(item.label)) {
-                            if (labels.includes("Outage")) {
+                            if (labels.includes("Sev: Outage")) {
                                 severity = Math.max(severity, 3);
-                            } else if (labels.includes("Degraded")) {
+                            } else if (labels.includes("Sev: Degraded")) {
                                 severity = Math.max(severity, 2);
-                            } else if (labels.includes("Maintenance")) {
+                            } else if (labels.includes("Sev: Maintenance")) {
                                 severity = Math.max(severity, 1);
                             } else {
                                 severity = Math.max(severity, 2);
@@ -627,7 +587,11 @@
             const maintenanceItems = [];
 
             openParsed.forEach(item => {
-                if (item.labels.includes("Maintenance") && !item.labels.includes("Outage") && !item.labels.includes("Degraded")) {
+                if (
+                    item.labels.includes("Sev: Maintenance") &&
+                    !item.labels.includes("Sev: Outage") &&
+                    !item.labels.includes("Sev: Degraded")
+                ) {
                     maintenanceItems.push(item);
                 } else {
                     activeIncidents.push(item);
@@ -642,7 +606,7 @@
                 topHtml += `<div class="banner-ok">All systems are operational.</div>`;
             } else {
                 topHtml += activeIncidents.map(({ issue, labels, cleanBody }) => {
-                    const isOutage = labels.includes("Outage");
+                    const isOutage = labels.includes("Sev: Outage");
                     const cardClass = isOutage ? "incident-card" : "incident-card degraded";
                     const tagsHtml = labels.map(l => `<span class="tag">${escapeHtml(l)}</span>`).join("");
                     const commentsHtml = renderCommentsHtml(issue.comment_list);
