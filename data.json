@@ -59,9 +59,9 @@
     "locked": false,
     "assignees": [],
     "milestone": null,
-    "comments": 0,
+    "comments": 1,
     "created_at": "2026-11-19T19:32:13Z",
-    "updated_at": "2026-11-19T19:32:13Z",
+    "updated_at": "2026-11-19T19:34:30Z",
     "closed_at": null,
     "assignee": null,
     "author_association": "COLLABORATOR",
@@ -97,7 +97,13 @@
     "performed_via_github_app": null,
     "state_reason": null,
     "pinned_comment": null,
-    "comment_list": []
+    "comment_list": [
+      {
+        "body": "Comments are posted as updates to the original issue. Like \"We're still working on it!\" ",
+        "created_at": "2026-11-19T19:34:30Z",
+        "updated_at": "2026-11-19T19:34:30Z"
+      }
+    ]
   },
   {
     "url": "https://api.github.com/repos/bard-ops/bard-status-backend/issues/6",
