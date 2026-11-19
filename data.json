@@ -35,8 +35,8 @@
       {
         "id": 13131879889,
         "node_id": "LA_kwDOVyM5kc8AAAADDriV0Q",
-        "url": "https://api.github.com/repos/bard-ops/status-backend/labels/Outage",
-        "name": "Outage",
+        "url": "https://api.github.com/repos/bard-ops/status-backend/labels/Sev:%20Outage",
+        "name": "Sev: Outage",
         "color": "b60205",
         "default": false,
         "description": "",
@@ -130,8 +130,8 @@
       {
         "id": 13131893232,
         "node_id": "LA_kwDOVyM5kc8AAAADDrjJ8A",
-        "url": "https://api.github.com/repos/bard-ops/status-backend/labels/Maintenance",
-        "name": "Maintenance",
+        "url": "https://api.github.com/repos/bard-ops/status-backend/labels/Sev:%20Maintenance",
+        "name": "Sev: Maintenance",
         "color": "4f7fd0",
         "default": false,
         "description": "",
@@ -141,8 +141,8 @@
       {
         "id": 13131904429,
         "node_id": "LA_kwDOVyM5kc8AAAADDrj1rQ",
-        "url": "https://api.github.com/repos/bard-ops/status-backend/labels/Power",
-        "name": "Power",
+        "url": "https://api.github.com/repos/bard-ops/status-backend/labels/Physical:%20Power",
+        "name": "Physical: Power",
         "color": "fd8756",
         "default": false,
         "description": "",
@@ -230,8 +230,8 @@
       {
         "id": 13131883191,
         "node_id": "LA_kwDOVyM5kc8AAAADDriitw",
-        "url": "https://api.github.com/repos/bard-ops/status-backend/labels/Degraded",
-        "name": "Degraded",
+        "url": "https://api.github.com/repos/bard-ops/status-backend/labels/Sev:%20Degraded",
+        "name": "Sev: Degraded",
         "color": "fbca04",
         "default": false,
         "description": "",
