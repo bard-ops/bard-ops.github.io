@@ -150,7 +150,7 @@
     "milestone": null,
     "comments": 1,
     "created_at": "2026-11-18T14:51:06Z",
-    "updated_at": "2026-11-18T17:08:24Z",
+    "updated_at": "2026-11-19T18:49:52Z",
     "closed_at": "2026-11-18T17:08:24Z",
     "assignee": null,
     "author_association": "OWNER",
@@ -168,7 +168,7 @@
       "blocking": 0,
       "total_blocking": 0
     },
-    "body": "### Affected Categories\n\n- [ ] IT: Network\n- [x] IT: Systems\n- [ ] IT: Authentication\n- [ ] IT: Google Workspace\n- [ ] IT: Banner\n- [ ] IT: Other\n- [ ] Physical Plant: Power\n- [ ] Physical Plant: Water\n- [ ] Physical Plant: Weather\n- [ ] Physical Plant: Other\n\n### Status Details & Impact\n\nBard systems engineers are investigating website issues impacting multiple systems",
+    "body": "Bard systems engineers are investigating website issues impacting multiple systems",
     "closed_by": {
       "login": "bard-ops",
       "id": 357433845,
