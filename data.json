@@ -61,7 +61,7 @@
     "milestone": null,
     "comments": 0,
     "created_at": "2026-11-20T15:07:51Z",
-    "updated_at": "2026-11-20T15:11:23Z",
+    "updated_at": "2026-11-20T15:27:15Z",
     "closed_at": "2026-11-20T15:11:23Z",
     "assignee": null,
     "author_association": "COLLABORATOR",
@@ -79,7 +79,7 @@
       "blocking": 0,
       "total_blocking": 0
     },
-    "body": "Systems team is investigating blah blah",
+    "body": "Systems team is investigating",
     "closed_by": {
       "login": "dbrangaitis",
       "id": 22602272,
