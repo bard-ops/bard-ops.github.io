@@ -1,0 +1,129 @@
+<!-- Bard IT Status Widget -->
+<a id="bard-it-status" href="https://bard-ops.github.io/" target="_blank" rel="noopener noreferrer" aria-live="polite">
+    <span class="bard-status-icon" aria-hidden="true">✓</span>
+    <span class="bard-status-label">Bard IT: operational</span>
+</a>
+
+<style>
+    #bard-it-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.5rem 0.85rem;
+        border-radius: 6px;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #22c55e;
+        background-color: #f0fdf4;
+        color: #166534;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+        line-height: 1.2;
+        transition: filter 0.15s ease;
+    }
+
+    #bard-it-status:hover {
+        filter: brightness(0.97);
+        text-decoration: underline;
+    }
+
+    #bard-it-status .bard-status-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        background-color: #22c55e;
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+
+    /* Degraded State */
+    #bard-it-status.is-degraded {
+        border-color: #fef08a;
+        border-left-color: #eab308;
+        background-color: #fefce8;
+        color: #854d0e;
+    }
+
+    #bard-it-status.is-degraded .bard-status-icon {
+        background-color: #eab308;
+    }
+
+    /* Outage State */
+    #bard-it-status.is-outage {
+        border-color: #fecaca;
+        border-left-color: #ef4444;
+        background-color: #fef2f2;
+        color: #991b1b;
+    }
+
+    #bard-it-status.is-outage .bard-status-icon {
+        background-color: #ef4444;
+    }
+</style>
+
+<script>
+(function () {
+    const widget = document.getElementById("bard-it-status");
+    if (!widget) return;
+
+    const iconEl = widget.querySelector(".bard-status-icon");
+    const labelEl = widget.querySelector(".bard-status-label");
+
+    fetch("https://bard-ops.github.io/data.json?t=" + Date.now())
+        .then(res => {
+            if (!res.ok) throw new Error("Failed to load status data");
+            return res.json();
+        })
+        .then(issues => {
+            let severity = 0; // 0 = operational, 1 = degraded, 2 = outage
+
+            issues
+                .filter(i => !i.pull_request && i.state === "open")
+                .forEach(issue => {
+                    const labels = (issue.labels || []).map(l => l.name);
+                    const affectsIT = labels.some(name => name.startsWith("IT:"));
+                    if (!affectsIT) return;
+
+                    // Ignore planned maintenance unless also tagged as Degraded/Outage
+                    if (
+                        labels.includes("Sev: Maintenance") &&
+                        !labels.includes("Sev: Degraded") &&
+                        !labels.includes("Sev: Outage")
+                    ) {
+                        return;
+                    }
+
+                    if (labels.includes("Sev: Outage")) {
+                        severity = Math.max(severity, 2);
+                    } else {
+                        // Defaults to degraded for Sev: Degraded or unlabeled active IT issues
+                        severity = Math.max(severity, 1);
+                    }
+                });
+
+            widget.classList.remove("is-degraded", "is-outage");
+
+            if (severity === 2) {
+                widget.classList.add("is-outage");
+                iconEl.textContent = "✕";
+                labelEl.textContent = "Bard IT: outage";
+            } else if (severity === 1) {
+                widget.classList.add("is-degraded");
+                iconEl.textContent = "!";
+                labelEl.textContent = "Bard IT: degraded";
+            } else {
+                iconEl.textContent = "✓";
+                labelEl.textContent = "Bard IT: operational";
+            }
+        })
+        .catch(() => {
+            // Keeps the default green operational state if network fetch fails
+        });
+})();
+</script>
