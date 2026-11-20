@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bard College Operational Status</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --green-bg: #f0fdf4;
+            --green-border: #22c55e;
+            --green-text: #166534;
+            --yellow-bg: #fefce8;
+            --yellow-border: #eab308;
+            --yellow-text: #854d0e;
+            --red-bg: #fef2f2;
+            --red-border: #ef4444;
+            --red-text: #991b1b;
+            --maint-bg: #f1f5f9;
+            --maint-border: #64748b;
+            --maint-text: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header img {
+            height: 56px;
+            width: auto;
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+        }
+
+        /* Top Status & Active Incidents */
+        #top-status {
+            margin-bottom: 2.25rem;
+        }
+
+        .banner-ok {
+            background: var(--green-bg);
+            border-left: 4px solid var(--green-border);
+            color: var(--green-text);
+            padding: 1rem 1.25rem;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .banner-ok:last-child {
+            margin-bottom: 0;
+        }
+
+        .incident-card {
+            background: var(--red-bg);
+            border-left: 4px solid var(--red-border);
+            padding: 1.15rem 1.25rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+
+        .incident-card.degraded {
+            background: var(--yellow-bg);
+            border-left-color: var(--yellow-border);
+        }
+
+        .incident-card.maintenance {
+            background: var(--maint-bg);
+            border-left-color: var(--maint-border);
+        }
+
+        .incident-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .incident-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--red-text);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.55rem;
+        }
+
+        .incident-card.degraded .incident-title {
+            color: var(--yellow-text);
+        }
+
+        .incident-card.maintenance .incident-title {
+            color: var(--maint-text);
+        }
+
+        .title-icon {
+            flex-shrink: 0;
+            margin-top: 0.2rem;
+            display: inline-flex;
+        }
+
+        .window-badge {
+            display: inline-block;
+            margin-top: 0.5rem;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: var(--maint-text);
+            font-size: 0.825rem;
+            font-weight: 600;
+            padding: 0.25rem 0.65rem;
+            border-radius: 4px;
+        }
+
+        .incident-body {
+            margin-top: 0.6rem;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+        }
+
+        .incident-meta {
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        /* Updates / Comments Timeline */
+        .updates-list {
+            margin-top: 0.9rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid rgba(15, 23, 42, 0.12);
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .update-item {
+            background: rgba(255, 255, 255, 0.65);
+            border-left: 3px solid rgba(15, 23, 42, 0.25);
+            padding: 0.55rem 0.8rem;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .history-card .update-item {
+            background: #f8fafc;
+            border-left-color: #94a3b8;
+        }
+
+        .update-time {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 0.2rem;
+        }
+
+        .update-body {
+            white-space: pre-wrap;
+            color: var(--text);
+        }
+
+        /* Category Groups */
+        .group-section {
+            margin-bottom: 2rem;
+        }
+
+        .card-list {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+
+        .system-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .system-row:last-child {
+            border-bottom: none;
+        }
+
+        .system-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Status Checkbox Badge */
+        .status-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #ffffff;
+            flex-shrink: 0;
+            background-color: var(--green-border);
+        }
+
+        .status-box.degraded {
+            background-color: var(--yellow-border);
+        }
+
+        .status-box.outage {
+            background-color: var(--red-border);
+        }
+
+        .status-box.maintenance {
+            background-color: var(--maint-border);
+        }
+
+        .status-text {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--green-text);
+        }
+
+        .status-text.degraded {
+            color: var(--yellow-text);
+        }
+
+        .status-text.outage {
+            color: var(--red-text);
+        }
+
+        .status-text.maintenance {
+            color: var(--maint-text);
+        }
+
+        /* Collapsible History */
+        .history-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.65rem;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .history-summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.85rem 1.25rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s ease;
+        }
+
+        .history-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .history-summary:hover {
+            background-color: #f8fafc;
+        }
+
+        .history-summary-left {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .history-chevron {
+            color: var(--muted);
+            flex-shrink: 0;
+            display: inline-flex;
+            transition: transform 0.18s ease;
+        }
+
+        .history-card[open] .history-chevron {
+            transform: rotate(90deg);
+        }
+
+        .history-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-card[open] .history-title {
+            white-space: normal;
+            font-weight: 700;
+        }
+
+        .history-date {
+            font-size: 0.8rem;
+            color: var(--muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .history-details {
+            padding: 0 1.25rem 1.1rem 1.25rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .tags {
+            margin: 0.75rem 0 0.5rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .incident-card .tags {
+            margin: 0.5rem 0;
+        }
+
+        .tag {
+            background: #ffffff;
+            color: #334155;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.15rem 0.55rem;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .history-card .tag {
+            background: #f1f5f9;
+            border-color: var(--border);
+        }
+
+        .history-body {
+            font-size: 0.9rem;
+            color: #334155;
+            white-space: pre-wrap;
+            margin-top: 0.4rem;
+        }
+
+        .empty-state {
+            color: var(--muted);
+            font-style: italic;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 540px) {
+            .history-summary {
+                flex-wrap: wrap;
+                gap: 0.35rem;
+            }
+            .history-date {
+                padding-left: 1.55rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="assets/bard-college-logo.png" alt="Bard College" onerror="this.style.display='none'">
+            <div>
+                <h1>Bard College Operational Status</h1>
+                <p>Out-of-band status for IT and Physical Plant infrastructure</p>
+            </div>
+        </header>
+
+        <section id="top-status">
+            <div class="banner-ok">All systems are operational.</div>
+        </section>
+
+        <section id="categories"></section>
+
+        <section>
+            <h2>Incident &amp; Maintenance History</h2>
+            <div id="history">
+                <p class="empty-state">No past incidents or maintenance recorded.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function wrenchSvg(size) {
+            return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
+        }
+
+        function chevronSvg() {
+            return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>`;
+        }
+
+        const categoryGroups = [
+            {
+                heading: "Information Technology",
+                items: [
+                    { name: "Systems", label: "IT: Systems" },
+                    { name: "Network", label: "IT: Network" },
+                    { name: "Security", label: "IT: Security" },
+                    { name: "Applications", label: "IT: Applications" },
+                    { name: "Other", label: "IT: Other" }
+                ]
+            },
+            {
+                heading: "Physical plant",
+                items: [
+                    { name: "Power", label: "Physical: Power" },
+                    { name: "Water", label: "Physical: Water" },
+                    { name: "Weather", label: "Physical: Weather" },
+                    { name: "Other", label: "Physical: Other" }
+                ]
+            }
+        ];
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function renderCommentsHtml(comments) {
+            if (!Array.isArray(comments) || comments.length === 0) return "";
+            const sorted = [...comments].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const itemsHtml = sorted.map(c => `
+                <div class="update-item">
+                    <div class="update-time">Update — ${new Date(c.created_at).toLocaleString()}</div>
+                    <div class="update-body">${escapeHtml((c.body || "").trim())}</div>
+                </div>
+            `).join("");
+            return `<div class="updates-list">${itemsHtml}</div>`;
+        }
+
+        function parseIssueData(issue) {
+            const rawBody = issue.body || "";
+            const lines = rawBody.split(/\r?\n/);
+            const labels = issue.labels.map(l => l.name);
+
+            let windowText = null;
+            const detailLines = [];
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+
+                // Extract "Maintenance Window: ..." line
+                const inlineWindow = trimmed.match(/^Maintenance Window:\s*(.+)$/i);
+                if (inlineWindow && !windowText) {
+                    const val = inlineWindow[1].trim();
+                    if (!/^\[Enter date,/i.test(val)) {
+                        windowText = val;
+                    }
+                    continue;
+                }
+
+                // Ignore unedited template placeholder lines
+                if (/^\[(Describe the active issue|Describe expected user impact)/i.test(trimmed)) {
+                    continue;
+                }
+
+                detailLines.push(line);
+            }
+
+            return {
+                labels,
+                windowText,
+                cleanBody: detailLines.join("\n").trim()
+            };
+        }
+
+        function renderCategories(parsedOpenIssues) {
+            const catDiv = document.getElementById("categories");
+            catDiv.innerHTML = categoryGroups.map(group => {
+                const rowsHtml = group.items.map(item => {
+                    let severity = 0;
+
+                    parsedOpenIssues.forEach(({ labels }) => {
+                        if (labels.includes(item.label)) {
+                            if (labels.includes("Sev: Outage")) {
+                                severity = Math.max(severity, 3);
+                            } else if (labels.includes("Sev: Degraded")) {
+                                severity = Math.max(severity, 2);
+                            } else if (labels.includes("Sev: Maintenance")) {
+                                severity = Math.max(severity, 1);
+                            } else {
+                                severity = Math.max(severity, 2);
+                            }
+                        }
+                    });
+
+                    let state = "operational";
+                    let icon = "✓";
+                    let labelText = "Operational";
+
+                    if (severity === 3) {
+                        state = "outage";
+                        icon = "✕";
+                        labelText = "Outage";
+                    } else if (severity === 2) {
+                        state = "degraded";
+                        icon = "!";
+                        labelText = "Degraded";
+                    } else if (severity === 1) {
+                        state = "maintenance";
+                        icon = wrenchSvg(13);
+                        labelText = "Maintenance";
+                    }
+
+                    const boxClass = state === "operational" ? "status-box" : `status-box ${state}`;
+                    const textClass = state === "operational" ? "status-text" : `status-text ${state}`;
+
+                    return `
+                        <div class="system-row">
+                            <div class="system-left">
+                                <span class="${boxClass}" aria-hidden="true">${icon}</span>
+                                <span>${escapeHtml(item.name)}</span>
+                            </div>
+                            <span class="${textClass}">${labelText}</span>
+                        </div>
+                    `;
+                }).join("");
+
+                return `
+                    <div class="group-section">
+                        <h2>${escapeHtml(group.heading)}</h2>
+                        <div class="card-list">${rowsHtml}</div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function renderDashboard(issues) {
+            const cleanIssues = issues.filter(i => !i.pull_request);
+            const openParsed = cleanIssues
+                .filter(i => i.state === "open")
+                .map(issue => ({ issue, ...parseIssueData(issue) }));
+            const closedParsed = cleanIssues
+                .filter(i => i.state === "closed")
+                .map(issue => ({ issue, ...parseIssueData(issue) }));
+
+            const activeIncidents = [];
+            const maintenanceItems = [];
+
+            openParsed.forEach(item => {
+                if (
+                    item.labels.includes("Sev: Maintenance") &&
+                    !item.labels.includes("Sev: Outage") &&
+                    !item.labels.includes("Sev: Degraded")
+                ) {
+                    maintenanceItems.push(item);
+                } else {
+                    activeIncidents.push(item);
+                }
+            });
+
+            // 1. Top Status Section
+            const topDiv = document.getElementById("top-status");
+            let topHtml = "";
+
+            if (activeIncidents.length === 0) {
+                topHtml += `<div class="banner-ok">All systems are operational.</div>`;
+            } else {
+                topHtml += activeIncidents.map(({ issue, labels, cleanBody }) => {
+                    const isOutage = labels.includes("Sev: Outage");
+                    const cardClass = isOutage ? "incident-card" : "incident-card degraded";
+                    const tagsHtml = labels.map(l => `<span class="tag">${escapeHtml(l)}</span>`).join("");
+                    const commentsHtml = renderCommentsHtml(issue.comment_list);
+
+                    return `
+                        <div class="${cardClass}">
+                            <div class="incident-title">${escapeHtml(issue.title)}</div>
+                            <div class="tags">${tagsHtml}</div>
+                            <div class="incident-body">${escapeHtml(cleanBody)}</div>
+                            ${commentsHtml}
+                            <div class="incident-meta">Reported: ${new Date(issue.created_at).toLocaleString()}</div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            if (maintenanceItems.length > 0) {
+                topHtml += maintenanceItems.map(({ issue, labels, windowText, cleanBody }) => {
+                    const tagsHtml = labels.map(l => `<span class="tag">${escapeHtml(l)}</span>`).join("");
+                    const windowHtml = windowText
+                        ? `<div class="window-badge">Scheduled Window: ${escapeHtml(windowText)}</div>`
+                        : "";
+                    const commentsHtml = renderCommentsHtml(issue.comment_list);
+
+                    return `
+                        <div class="incident-card maintenance">
+                            <div class="incident-title"><span class="title-icon">${wrenchSvg(19)}</span><span>${escapeHtml(issue.title)}</span></div>
+                            ${windowHtml}
+                            <div class="tags">${tagsHtml}</div>
+                            <div class="incident-body">${escapeHtml(cleanBody)}</div>
+                            ${commentsHtml}
+                            <div class="incident-meta">Posted: ${new Date(issue.created_at).toLocaleString()}</div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            topDiv.innerHTML = topHtml;
+
+            // 2. Category Rows
+            renderCategories(openParsed);
+
+            // 3. Collapsible Incident & Maintenance History
+            const historyDiv = document.getElementById("history");
+            if (closedParsed.length === 0) {
+                historyDiv.innerHTML = `<p class="empty-state">No past incidents or maintenance recorded.</p>`;
+            } else {
+                historyDiv.innerHTML = closedParsed.map(({ issue, labels, windowText, cleanBody }) => {
+                    const tagsHtml = labels
+                        .map(l => `<span class="tag">${escapeHtml(l)}</span>`)
+                        .join("");
+                    const windowLine = windowText ? `Scheduled Window: ${windowText}\n\n` : "";
+                    const commentsHtml = renderCommentsHtml(issue.comment_list);
+
+                    return `
+                        <details class="history-card">
+                            <summary class="history-summary">
+                                <div class="history-summary-left">
+                                    <span class="history-chevron">${chevronSvg()}</span>
+                                    <span class="history-title">${escapeHtml(issue.title)}</span>
+                                </div>
+                                <span class="history-date">Resolved ${new Date(issue.closed_at).toLocaleString()}</span>
+                            </summary>
+                            <div class="history-details">
+                                <div class="tags">${tagsHtml}</div>
+                                <div class="history-body">${escapeHtml(windowLine + cleanBody)}</div>
+                                ${commentsHtml}
+                            </div>
+                        </details>
+                    `;
+                }).join("");
+            }
+        }
+
+        // Draw all categories with green checkboxes immediately on load
+        renderCategories([]);
+
+        // Fetch live data and update if available
+        fetch("data_example.json?t=" + Date.now())
+            .then(res => {
+                if (!res.ok) throw new Error("No data file yet");
+                return res.json();
+            })
+            .then(renderDashboard)
+            .catch(() => {});
+    </script>
+</body>
+</html>
