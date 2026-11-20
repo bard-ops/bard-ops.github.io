@@ -15,3 +15,7 @@ This site provides real-time operational visibility into core campus systems, ac
 
 * **Self-Contained Frontend (`index.html`):** Zero external CSS, font, or JavaScript CDN dependencies—everything required to render the dashboard lives in a single static HTML file.
 * **Static Data Feed (`data.json`):** Updated automatically via an automated sync pipeline whenever incidents or maintenance notices are published, updated, or resolved.
+
+## Acknowledgements
+
+This project was inspired by and based on the architecture designed for [Upptime](https://upptime.js.org)
